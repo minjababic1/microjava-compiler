@@ -1,0 +1,359 @@
+package rs.ac.bg.etf.pp1;
+
+import java_cup.runtime.*;
+import org.apache.log4j.*;
+import rs.ac.bg.etf.pp1.ast.*;
+
+parser code {:
+
+	boolean errorDetected;
+
+	Logger log = Logger.getLogger(getClass());
+   
+   
+    // slede redefinisani metodi za prijavu gresaka radi izmene teksta poruke
+     
+    public void report_fatal_error(String message, Object info) throws java.lang.Exception {
+      done_parsing();
+      report_error(message, info);
+    }
+  
+    public void syntax_error(Symbol cur_token) {
+        report_error("\nSintaksna greska", cur_token);
+    }
+  
+    public void unrecovered_syntax_error(Symbol cur_token) throws java.lang.Exception {
+        report_fatal_error("Fatalna greska, parsiranje se ne moze nastaviti", cur_token);
+    }
+
+    public void report_error(String message, Object info) {
+    	errorDetected = true;
+    	StringBuilder msg = new StringBuilder(message); 
+    	if (info instanceof Symbol)
+            msg.append (" na liniji ").append(((Symbol)info).left);
+        log.error(msg.toString());
+    }
+
+
+:}
+
+
+init with {:
+	errorDetected = false;
+:}
+
+scan with {:
+	Symbol s = this.getScanner().next_token();
+	if (s != null && s.value != null) 
+		log.info(s.toString() + " " + s.value.toString());
+	return s;
+:}
+
+
+terminal PROGRAM, LCURLY, RCURLY, CONST, ASSIGN, VOID, SEMI, COMMA;
+terminal LPAREN, RPAREN, LSQUARE, RSQUARE;
+terminal COLON, PLUS, SET, EXTENDS, NEW, ELSE, IF, DOT, DIV, MINUS, INTERFACE, AND, EQUAL, UNION, MOD, MUL, BREAK, READ, INC;
+terminal MAP, GRT, DIFF, WHILE, PRINT, GRE, DO, CLASS, DEC, RETURN, LSS, CONTINUE, OR, LSR;
+terminal Integer NUM;
+terminal char CHAR;
+terminal Boolean BOOL;
+terminal String IDENT;
+
+nonterminal Program, DataList, MethodsList, DataLine;
+nonterminal VarDecl, VarNonLastList, VarNonLast, VarLast, DimensionProperty;
+nonterminal ConstDecl, ConstNonLastList, ConstNonLast, ConstLast, Literal;
+nonterminal MethodDecl, MethodSignature, VarDeclList;
+nonterminal FormPars, FormParamNonLastList, FormParamNonLast, FormParamLast;
+nonterminal StatementList, Statement;
+nonterminal DesignatorStatementSemi, AssignOp, ActPars, ActParamList, SetOp, AddOp, MulOp;
+nonterminal RelOp;
+nonterminal DesignatorStatementParen;
+nonterminal EnterDoWhile, ExitDoWhile;
+nonterminal EnterParenExpression, EnterExprWithStartingMinus, OrFound, EnterElse, IfElseStatement, EnterIf, JumpOnDo;
+
+nonterminal rs.etf.pp1.symboltable.concepts.Obj ProgName, Designator, MethodTypeAndName, EnterDesignatorArray;
+nonterminal rs.etf.pp1.symboltable.concepts.Struct Type, MethodTypeOrVoid, Expression, ExpressionList, Factor, Term, Condition, CondTerm, CondFact;
+
+precedence left ELSE;
+
+Program ::= (Program) PROGRAM ProgName DataList LCURLY MethodsList RCURLY; /* Uvezuje sve lokale u svoj locals i zatvara scope */
+
+ProgName ::= (ProgName) IDENT:programName; /* Dodaje ime programa u tabelu simbola i otvara scope*/
+
+DataList ::= (MultDataList) DataList DataLine
+			| 
+			(EpsDataList) /* epsilon */
+			;
+			
+DataLine ::= (ConstDataLineDecl) ConstDecl
+		  |
+		  (VarDataLineDecl) VarDecl
+		  ;
+
+VarDecl ::= (VarDecl) Type VarNonLastList VarLast;
+				
+VarNonLastList ::= (MultVarNonLast) VarNonLastList VarNonLast
+				|
+				(EpsVarNonLast) /* epsilon */
+				;
+				
+VarNonLast ::= (VarNonLastDecl) IDENT:identName DimensionProperty COMMA /* Dodaje promenljivu u tabelu simbola uz pomoc trenutno sacuvanog tipa i DimensionProperty-ja, ako je type SET, ne moze biti niz! */
+			|
+			(ErrVarNonLast) error COMMA:l
+			{: parser.report_error("Izvrsen oporavak do , u liniji " + lleft, null);  :}
+			;
+			
+VarLast ::= (VarLastDecl) IDENT:identName DimensionProperty SEMI /* Dodaje promenljivu u tabelu simbola uz pomoc trenutno sacuvanog tipa i DimensionProperty-ja, ako je type SET, ne moze biti niz! */
+			|
+			(ErrVarLast) error SEMI:l
+			{: parser.report_error("Izvrsen oporavak do ; u liniji " + lleft, null);  :}
+			;
+			
+ConstDecl ::= (ConstDecl) CONST Type ConstNonLastList ConstLast; /* Type ne sme biti set */
+
+ConstNonLastList ::= (MultConstNonLast) ConstNonLastList ConstNonLast
+				|
+				(EpsConstNonLast) /* epsilon */
+				;
+				
+ConstNonLast ::= (ConstNonLastDecl) IDENT:identName ASSIGN Literal COMMA /* Dodaje konstantu u tabelu simbola uz pomoc trenutno sacuvanog tipa, ne moze type biti set i literal mora da se poklapa sa tipom */
+			|
+			(ErrConstNonLast) error COMMA:l
+			{: parser.report_error("Izvrsen oporavak do , u liniji " + lleft, null);  :}
+			;
+			
+ConstLast ::= (ConstLastDecl) IDENT:identName ASSIGN Literal SEMI /* Dodaje konstantu u tabelu simbola uz pomoc trenutno sacuvanog tipa, ne moze type biti set i literal mora da se poklapa sa tipom */
+			|
+			(ErrConstLast) error SEMI:l
+			{: parser.report_error("Izvrsen oporavak do ; u liniji " + lleft, null);  :}
+			;
+
+DimensionProperty ::= (DimPropArray) LSQUARE RSQUARE /* Postavlja info da je promenljiva niz */
+					|
+					(DimPropNonArray) /* epsilon */ /* Postavlja info da promenljiva nije niz */
+					;
+					
+Type ::= (Type) IDENT:typeName ; /* Pamti trenutni tip */
+			
+Literal ::= (NumLiteral) NUM:numLiteral /* Postavlja tip trenutnog literala */
+		  | (CharLiteral) CHAR:charLiteral
+		  | (BoolLiteral) BOOL:boolLiteral
+		  ;
+		  
+MethodsList ::= (MulMethodsList) MethodsList MethodDecl
+			| 
+			(EpsMethods) /* epsilon */
+			;
+			
+MethodDecl ::= (MethodDecl) MethodSignature VarDeclList LCURLY StatementList RCURLY; /* Ulancava locals, zatvara scope i stavlja currMethod=null */
+
+VarDeclList ::= (MultVarDeclList) VarDeclList VarDecl
+			|
+			(EpsVarDeclList) /* epsilon */
+			;
+			
+MethodSignature ::= (MethodSignature) MethodTypeAndName LPAREN FormPars; 
+
+MethodTypeAndName ::= (MethodTypeAndName) MethodTypeOrVoid IDENT:methodName; /* Na osnovu postavljenog MethodTypeOrVoid.struct cita tip i dodaje metod u tabelu simbola i otvara scope */
+
+MethodTypeOrVoid ::= (TypeMethodTypeOrVoid) Type /* Postavlja info da je type */
+					| (VoidMethodTypeOrVoid) VOID /* Postavlja info da je void */
+					;
+					
+FormPars ::= (FormParamList) FormParamNonLastList FormParamLast
+			|
+			(FormParsEmpty) RPAREN
+			;
+
+FormParamNonLastList ::= (MultFormParams) FormParamNonLastList FormParamNonLast
+						|
+						(EpsFormParam) /* epsilon */
+						;
+						
+FormParamNonLast ::= (FormParamNonLastDecl) Type IDENT:identName DimensionProperty COMMA /* Dodaje formalni parametar u tabelu simbola, i proverava da li je dobar type i dp */
+				 |
+				 (ErrFormParamNonLast) error COMMA:l
+				 {: parser.report_error("Izvrsen oporavak do , u liniji " + lleft, null);  :}
+				 ;
+				 
+FormParamLast ::= (FormParamLastDecl) Type IDENT:identName DimensionProperty RPAREN /* Dodaje formalni parametar u tabelu simbola, i proverava da li je dobar type i dp */
+				 |
+				 (ErrFormParamLast) error RPAREN:l
+				 {: parser.report_error("Izvrsen oporavak do ) u liniji " + lleft, null);  :}
+				;
+
+StatementList ::= (Statements) StatementList Statement
+				|
+				(EpsStatements) /* epsilon */
+				;
+				
+Statement ::= (StatementDesign) DesignatorStatementSemi
+			|
+			(IfElseWrapper) IF LPAREN EnterIf IfElseStatement
+			|
+			(BreakStatement) BREAK SEMI
+			|
+			(ContinueStatement) CONTINUE SEMI
+			|
+			(ReturnStatement) RETURN SEMI
+			|
+			(ReturnExpressionStatement) RETURN Expression SEMI
+			|
+			(ReadStatement) READ LPAREN Designator RPAREN SEMI
+			|
+			(PrintExpressionStatement) PRINT LPAREN Expression RPAREN SEMI
+			|
+			(PrintExpressionWithNumberStatement) PRINT LPAREN Expression COMMA NUM:num RPAREN SEMI
+			|
+			(DoWhileStatement) DO EnterDoWhile Statement ExitDoWhile WHILE LPAREN RPAREN JumpOnDo SEMI
+			|
+			(DoWhileConditionStatement) DO EnterDoWhile Statement ExitDoWhile WHILE LPAREN Condition RPAREN JumpOnDo SEMI
+			|
+			(DoWhileConditionDesignatorStatement) DO EnterDoWhile Statement ExitDoWhile WHILE LPAREN Condition COMMA DesignatorStatementParen JumpOnDo
+			|
+			(NestedStatement) LCURLY StatementList RCURLY
+			;
+			
+IfElseStatement ::= (IfElseStatementIfElse) Condition RPAREN Statement ELSE EnterElse Statement
+			|
+			(IfElseStatementIf) Condition RPAREN Statement
+			|
+			(ErrorStatement) IF LPAREN error RPAREN:l
+			{: parser.report_error("Izvrsen oporavak do ) u liniji " + lleft, null);  :}
+			;	
+			
+JumpOnDo ::= (JumpOnDo) /* epsilon */ ;
+			
+EnterIf ::= (EnterIf) /* epsilon */;
+			
+EnterDoWhile ::= (EnterDoWhile) /* epsilon */;
+
+ExitDoWhile ::= (ExitDoWhile) /* epsilon */;
+
+EnterElse ::= (EnterElse) /* epsilon */;
+			
+			
+Expression ::= (Expressions) ExpressionList
+			| 
+			(ExpressionsWithStartingMinus) MINUS EnterExprWithStartingMinus ExpressionList
+			| 
+			(MapExpression) Designator:designLeft MAP Designator:designRight
+			;
+			
+EnterExprWithStartingMinus ::= (EnterExprWithStartingMinus) /* epsilon */;
+			
+ExpressionList ::= (ExpressionListRecursion) ExpressionList AddOp Term
+				| 
+				(ExpressionListTerminal) Term 
+				;
+
+Term ::= (TermRecursion) Term MulOp Factor
+		| 
+		(TermFactor) Factor
+		;
+		
+Factor ::= (FactorDesign) Designator
+		|
+		(FactorFuncCall) Designator:designatorName LPAREN ActPars RPAREN
+		|
+		(FactorNum) NUM:numVal
+		| 
+		(FactorChar) CHAR:charVal
+		| 
+		(FactorBool) BOOL:boolVal
+		| 
+		(FactorNewExpression) NEW Type LSQUARE Expression RSQUARE
+		| 
+		(FactorExpr) LPAREN EnterParenExpression Expression RPAREN
+		;
+		
+EnterParenExpression ::= (EnterParenExpression) /* epsilon */ ;
+		
+DesignatorStatementSemi ::= (DesignatorStmtAssignSemi) Designator AssignOp Expression SEMI
+					|
+					(DesignatorStmtFuncCallSemi) Designator LPAREN ActPars RPAREN SEMI
+					|
+					(DesignatorStmtIncSemi) Designator INC SEMI
+					|
+					(DesignatorStmtDecSemi) Designator DEC SEMI
+					|
+					(DesignatorStmtUnionSemi) Designator AssignOp Designator SetOp Designator SEMI
+					|
+					(DesignatorStmtSemiError) error SEMI:l
+					{: parser.report_error("Izvrsen oporavak do ; u liniji " + lleft, null);  :}
+					;
+				
+DesignatorStatementParen ::= (DesignatorStmtAssignParen) Designator AssignOp Expression RPAREN SEMI
+					|
+					(DesignatorStmtFuncCallParen) Designator LPAREN ActPars RPAREN RPAREN SEMI
+					|
+					(DesignatorStmtIncParen) Designator INC RPAREN SEMI
+					|
+					(DesignatorStmtDecParen) Designator DEC RPAREN SEMI
+					|
+					(DesignatorStmtUnionParen) Designator AssignOp Designator SetOp Designator RPAREN SEMI
+					;
+					
+Designator ::= (DesignatorVar) IDENT:designIdent
+			|
+			(DesignatorArray)  EnterDesignatorArray LSQUARE Expression RSQUARE
+			;
+		
+EnterDesignatorArray ::= (EnterDesignatorArray) IDENT:designIdent ;
+
+ActPars ::= (ActualParameters) ActParamList
+		| 
+		(EpsActualParameters) /* epsilon */
+		;
+	
+ActParamList ::= (MultActParamList) ActParamList COMMA Expression
+			  | 
+			  (SingleActParamList) Expression
+			  ;
+
+			  
+Condition ::= (MultCondTerm) Condition OR OrFound CondTerm
+			| 
+			(SingleCondTerm) CondTerm
+			;
+			
+OrFound ::= (OrFound) /* epsilon */;
+			
+CondTerm ::= (MultCondFact) CondTerm AND CondFact
+		  | 
+		  (SingleCondFact) CondFact
+		  ;
+		  
+CondFact ::= (CondFactSingleExpr) Expression 
+		  |  
+		  (CondFactRelOpExpression) Expression RelOp:operator Expression
+		  ;
+		  
+AssignOp ::= (AssignOp) ASSIGN;
+
+RelOp ::= (EqualRelOp) EQUAL
+		|
+		(DiffRelOp) DIFF
+		|
+		(GrtRelOp) GRT
+		|
+		(GreRelOp) GRE
+		|
+		(LssRelOp) LSS
+		|
+		(LsrRelOp) LSR
+		;
+		
+AddOp ::= (PlusAddOp) PLUS
+		|
+		(MinusAddOp) MINUS
+		;
+		
+MulOp ::= (MulMulOp) MUL
+		|
+		(DivMulOp) DIV
+		|
+		(ModMulOp) MOD
+		;
+		
+SetOp ::= (SetOp) UNION;

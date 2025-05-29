@@ -1,0 +1,161 @@
+// Test301
+
+program test301
+	int a;
+{
+
+	int foo(int x)
+	{
+		if(x%2 == 1)
+			return 1;
+		else
+			return 0;
+	}
+	
+	int foo2(int x){
+		if(x > 6)
+			return 1;
+		else
+			return 2;
+	}
+	
+	
+	void main()
+	int x, y, z;
+	int arr[];
+	//char cArr[];
+	//bool bArr[];
+	set s1, s2, s3;
+	{
+		arr = new int[3];
+		s1 = new set[6];
+		s2 = new set[2];
+		s3 = new set[3];
+		
+		arr[0] = 10;
+		arr[1] = 12;
+		arr[2] = 9;
+		
+		//add(s1,10);
+		//add(s1,12);
+		//add(s1,9);
+		//addAll(s1, arr);
+		add(s2,10);
+		add(s2,11);
+		add(s3, 12);
+		add(s3, 13);
+		add(s3, 14);
+		s1 = s2 union s3;
+		
+		
+		print(s1);
+		//print(s2);
+		print(s3);
+		
+		x = len(arr);
+		print(x,10);
+		
+		//add(s1, 10);
+		//add(s1, 12);
+		//add(s1, 10);
+		//add(s1, 9);
+		//add(s1, 2);
+		
+		
+		
+		//print(s1);
+		
+		//arr = new int[8];
+		//x = 0;
+		//do{
+			//arr[x] = x + 1;
+			//x++;
+		//} while(x < 8);
+		
+		//y = foo map arr;
+		//z = foo2 map arr;
+		//print(y);
+		//print(z);
+		
+		//a++;
+		//print(a);
+	
+		//x = 6;
+		//y = 7;
+		//z = 5;
+		
+		
+		//if(x > 5 && y > 5 && x+y<15)
+			//print(1);
+		//else
+			//print(0);
+			
+		//print(2);
+		
+		//if(x > 5 && x < 10 && y > 5 || x<2 && y>10)
+			//print(1);
+		//else
+			//print(0);
+			
+	    //print(2);
+		
+		
+		//if(x > 6)
+			//if(y > 6)
+				//print(12);
+			//else
+				//print(10);
+		//else
+			//if(y>6)
+				//print(8);
+			//else
+				//print(6);
+	
+	
+		//do{
+			//print(x);
+			//y--;
+			//if(y >= 5)
+				//break;
+				//continue;
+			//print(z);
+		//} while(y > 0, z--);
+			
+	
+		//print(4);
+		// read(y);
+		//y++;
+		//arr = new int[3];
+		//arr[0] = 1;
+		//arr[1]++;
+		//y--;
+		//print(arr[0]);
+		//print(arr[1]);
+		//print(y);
+		//print(3 + arr[0]);
+		//print(2-arr[1]);
+		
+		//cArr = new char[2];
+		//bArr = new bool[4];
+		
+		//cArr[0] = 'c';
+		//bArr[0] = false;
+		
+		//print(cArr[0], 4);
+		//print(bArr[0]);
+		
+		//foo(y);
+		
+		//x = foo(0);
+		//print(x);
+		
+		//x = 4 - (3+1) + y;
+		//print(x, 8);
+		//print('a',4);
+		//y--;
+		//y = 10%3;
+		//print(y, 10);
+
+		
+	}
+}

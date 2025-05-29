@@ -1,0 +1,68 @@
+
+
+//Test 302
+
+program test302
+
+const int size = 10, cap=20;
+const bool flag = false, cond=true;
+const char first = 'a', second = 'b';
+set s1;
+int x[],y;
+char c1[],c2;
+bool t1[],t2;
+set s2;
+
+{
+
+	int mapFoo(int c)
+	{
+		//read(c1);
+		print(c);
+		return 2;
+	}
+	
+	int testFoo(int a, char c, bool b, set s, int arr[], char cArr[], bool bArr[]){
+		return 0;
+	}
+	
+
+	void foo(int y, int tmp)
+	char ccc;
+	set s;
+	int arr[], x[];
+	{
+		y = mapFoo map arr;
+		s = s2;
+		s = new set[3];
+		do
+			y++;
+		while();
+		
+		if(3+4 > 2 || true == false)
+			y++;
+			
+		//x = new set[2];
+		//ccc++;
+		y = testFoo(2, 'a', true, s, new int[2], new char[3], new bool[2]);
+		s = s1 union s2;
+		y = tmp;
+		arr = x;
+		y = arr[0];
+		arr[1] = y;
+		read(arr[1]);
+		arr[2]++;
+		//arr = c1;
+		//arr = c1[2];
+		//c1 = size;
+		//cap = 30;
+		
+	}
+
+	void main()
+	char c, g;
+	bool arr[];
+	{
+	}
+
+}
